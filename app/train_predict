@@ -12,9 +12,8 @@ import algorithm.utils as utils
 import algorithm.model_trainer as model_trainer
 import algorithm.preprocessing.pipeline as pipeline
 import algorithm.model.clustering as clustering
-import algorithm.model_server as model_server
 
-# These are the paths to where SageMaker mounts interesting things in your container.
+# Paths for inputs, model, outputs for ml_vol mounted to the container.
 prefix = '/opt/ml_vol/'
 data_path = os.path.join(prefix, 'inputs', 'data')
 data_schema_path = os.path.join(prefix, 'inputs', 'data_config')
@@ -31,7 +30,7 @@ data_path = os.path.join(data_path, "clusteringBaseMainInput")
 
 
 # The function to execute the training.
-def train_and_predict(num_clusters):    
+def train_and_predict():    
     try:        
         print('Starting the training.')
         # Read in any hyperparameters that the user defined with algorithm submission
@@ -41,15 +40,11 @@ def train_and_predict(num_clusters):
         # read data config
         data_schema = utils.get_data_schema(data_schema_path)
         # get trained preprocessor, model, training history 
-        preprocessor, model = model_trainer.get_trained_model(data, data_schema, hyper_parameters, num_clusters)        
+        preprocessor, model, predictions = model_trainer.get_trained_model(data, data_schema, hyper_parameters)        
         # Save the processing pipeline   
         pipeline.save_preprocessor(preprocessor, model_path)
         # Save the model 
         clustering.save_model(model, model_path)
-        # instantiate the trained model (does lazy loading)
-        predictor = model_server.ModelServer(model_path)
-        # make predictions - redundant preprocessing, but being lazy ... 
-        predictions = predictor.predict(data, data_schema)
         # save predictions
         predictions.to_csv(os.path.join(testing_outputs_path, "test_predictions.csv"), index=False)
            
@@ -67,7 +62,4 @@ def train_and_predict(num_clusters):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-n", "--num_clusters", type=int, help="the number of clusters to generate")
-    args = parser.parse_args()
-    train_and_predict(num_clusters=args.num_clusters)
+    train_and_predict()

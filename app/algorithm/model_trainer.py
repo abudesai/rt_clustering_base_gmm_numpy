@@ -3,6 +3,7 @@
 import os, warnings, sys
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 warnings.filterwarnings('ignore') 
+import numpy as np, pandas as pd
 
 import algorithm.preprocessing.pipeline as pp_pipe
 import algorithm.preprocessing.preprocess_utils as pp_utils
@@ -15,51 +16,40 @@ from algorithm.utils import get_model_config
 model_cfg = get_model_config()
 
 
-def get_trained_model(train_data, data_schema, hyper_params, num_clusters):  
+def get_trained_model(train_data, data_schema, hyper_params):  
     
     # set random seeds
-    utils.set_seeds()    
+    utils.set_seeds()     
     
-    # preprocess data
-    print("Pre-processing data...")
-    train_X, _, preprocess_pipe = preprocess_data(train_data, None, data_schema)  
-    # print('train_X shape:',  train_X.shape)  ; sys.exit()
-                  
-    # Create and train model     
-    print('Fitting model ...')  
-    model = train_model(train_X, hyper_params, num_clusters)   
-    
-    return preprocess_pipe, model
-
-
-def train_model(train_X, hyper_params, num_clusters):    
-    # set model hyper-paameters parameters 
-    data_based_params = get_data_based_model_params(train_X)
-    model_params = {**hyper_params, **data_based_params, "K": num_clusters }
-    
-    # Create and train model   
-    model = Model(  **model_params )  
-    
-    model.fit(
-        train_X = train_X, 
-        max_epochs=100, 
-        verbose=True
-        )
-    return model
-
-
-def preprocess_data(train_data, valid_data, data_schema):
-    # print('Preprocessing train_data of shape...', train_data.shape)
     pp_params = pp_utils.get_preprocess_params(train_data, data_schema, model_cfg) 
     # pprint.pprint(pp_params) 
     
+    # preprocess data; returns a dictionary of X values, ids, and indexes of ids
+    print('Preprocessing data ...')  
     preprocess_pipe = pp_pipe.get_preprocess_pipeline(pp_params, model_cfg)
-    train_data = preprocess_pipe.fit_transform(train_data)
-    # print("Processed train X/y data shape", train_data['X'].shape, train_data['y'].shape)
-      
-    if valid_data is not None:
-        valid_data = preprocess_pipe.transform(valid_data)
-    # print("Processed valid X/y data shape", valid_data['X'].shape, valid_data['y'].shape)
-    return train_data, valid_data, preprocess_pipe 
+    preprocessed_data = preprocess_pipe.fit_transform(train_data)    
+    train_X, ids = preprocessed_data['X'].values.astype(np.float), preprocessed_data['ids']
+    # print('train_X shape:',  train_X.shape)      
+    
+    # suggested # of clusters in schema
+    num_clusters = data_schema["datasetSpecs"]["suggestedNumClusters"]   
+    
+    data_based_params = get_data_based_model_params(train_X)
+    model_params = {**hyper_params, **data_based_params, "K": num_clusters }  
+    
+             
+    model = Model(  **model_params )   
+    print('Fitting model ...')  
+    predicted_clusters = model.fit_predict(train_X)
+    
+    
+    # return the prediction df with the id and prediction fields
+    id_field_name = data_schema["inputDatasets"]["clusteringBaseMainInput"]["idField"]  
+    preds_df = pd.DataFrame(ids, columns=[id_field_name])
+    preds_df['prediction'] = predicted_clusters
+    
+            
+    return preprocess_pipe, model, preds_df
+
 
 

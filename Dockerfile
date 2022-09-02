@@ -23,5 +23,4 @@ ENV PATH="/opt/app:${PATH}"
 
 
 
-RUN chmod +x train_predict &&\
-    chmod +x serve 
+RUN chmod +x train_predict 

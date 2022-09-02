@@ -9,7 +9,7 @@ warnings.filterwarnings('ignore')
 
 model_fname = "model.save"
 
-MODEL_NAME = "GaussianMixture_Numpy"
+MODEL_NAME = "clustering_base_gmm_numpy"
 
 
 class ClusteringModel:
@@ -28,7 +28,7 @@ class ClusteringModel:
     """
     
     
-    def __init__(self, D, K) -> None:
+    def __init__(self, D, K, **kwargs) -> None:
         self.D = D
         self.K = K  
         self.mu = np.zeros((self.K, self.D))
@@ -37,34 +37,35 @@ class ClusteringModel:
         
         
         
-    def fit(self, train_X, max_epochs=100, verbose=False): 
+    def fit(self, X, max_epochs=100, verbose=False): 
         
         # for early stopping
         min_improvement_in_ll = 0.1
         max_epochs_without_improvement = 5
         
-        X = train_X.values
         N = X.shape[0]
         
         self.memberships = np.zeros((N, self.K))
         
         for k in range(self.K):
             self.mu[k] = X[np.random.choice(N)]
-            self.cov[k] = np.eye(self.D)
+            self.cov[k] = np.eye(self.D) 
     
         log_likelihoods = []
-        smoothing=1e-2  
-        
+        smoothing=1e-3
+                
         weighted_pdfs = np.zeros((N, self.K)) # we'll use these to store the PDF value of sample n and Gaussian k
         
         num_epoch_since_last_improvement = 0
         for i in range(max_epochs):
-            
+                        
+            # expectation
             for k in range(self.K):
                 weighted_pdfs[:,k] = self.pi[k] * multivariate_normal.pdf(X, self.mu[k], self.cov[k])
-        
+            
             self.memberships = weighted_pdfs / weighted_pdfs.sum(axis=1, keepdims=True)
-        
+                        
+            # maximization
             for k in range(self.K):               
                 
                 Nk = self.memberships[:,k].sum()
@@ -76,7 +77,7 @@ class ClusteringModel:
                 delta = X - self.mu[k] # N x D
                 Rdelta = np.expand_dims(self.memberships[:,k], -1) * delta # multiplies R[:,k] by each col. of delta - N x D
                 self.cov[k] = Rdelta.T.dot(delta) / Nk + np.eye(self.D)*smoothing # D x D
-
+            
             # expectation (log-likelihood)
             log_likelihood = np.log(weighted_pdfs.sum(axis=1)).sum()
             log_likelihoods.append(log_likelihood)
@@ -89,8 +90,8 @@ class ClusteringModel:
                     
                     if num_epoch_since_last_improvement >= max_epochs_without_improvement:
                         if verbose: print("Stopping due to no significant improvement")
-                        break
-        
+                        break            
+            
         return np.array(log_likelihoods)
     
     
@@ -108,6 +109,12 @@ class ClusteringModel:
         memberships = self.predict_proba(X)  
         predictions = np.argmax(memberships, axis=1)     
         return predictions
+    
+    
+    def fit_predict(self, X): 
+        self.fit(X) 
+        preds = self.predict(X)
+        return preds
         
     
     def evaluate(self, x_test): 
