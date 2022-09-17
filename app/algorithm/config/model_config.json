@@ -12,6 +12,7 @@
       "COLUMN_SELECTOR": "column_selector",
       "FLOAT_TYPE_CASTER": "float_type_caster",
       "STANDARD_SCALER": "standard_scaler",
+      "CUSTOM_SVD": "custom_svd",
       "X_SPLITTER": "x_selector"
     }
   },

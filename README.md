@@ -17,6 +17,7 @@ The algorithm aims to partition n observations into k clusters in which each obs
 The data preprocessing step includes:
 
 - for numerical variables
+  - TruncatedSVD
   - Standard scale data
 
 During the model development process, the algorithm was trained and evaluated on a variety of datasets such as car, iris, penguins, statlog, steel_plate_fault, and wine. Additionally, we also used various synthetically generated datasets such as two concentric (noisy) circles, four worms (four crescent-moon shaped clusters), and unequal variance gaussian blobs.

@@ -2,7 +2,7 @@
 
 from feature_engine.wrappers import SklearnTransformerWrapper
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 import sys, os
 import joblib
 import algorithm.preprocessing.preprocessors as preprocessors
@@ -45,11 +45,21 @@ def get_preprocess_pipeline(pp_params, model_cfg):
         (
             pp_step_names["STANDARD_SCALER"], 
             SklearnTransformerWrapper(                    
-                MinMaxScaler(),
+                StandardScaler(),
                 variables=pp_params["num_vars"] 
             ),    
         )
-    )   
+    )       
+     
+    # apply truncated svd
+    pipe_steps.append(
+        (
+            pp_step_names["CUSTOM_SVD"], 
+            preprocessors.CustomSVD(
+                id_col=pp_params["id_field"],
+            )
+        )
+    )    
     
     # ===============================================================
     # X column selector
