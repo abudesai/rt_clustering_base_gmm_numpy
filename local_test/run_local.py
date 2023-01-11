@@ -90,9 +90,7 @@ def copy_example_files(dataset_name):
     shutil.copyfile(f"{local_datapath}/{dataset_name}/{dataset_name}_schema.json", os.path.join(data_schema_path, f"{dataset_name}_schema.json"))
     # data
     shutil.copyfile(f"{local_datapath}/{dataset_name}/{dataset_name}_test.csv", os.path.join(data_path, f"{dataset_name}_test.csv"))
-    # hyperparameters
-    shutil.copyfile("./examples/hyperparameters.json", os.path.join(hyper_param_path, "hyperparameters.json"))
-
+    
 
 def train_and_predict():
     # Read hyperparameters
